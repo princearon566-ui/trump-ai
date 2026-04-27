@@ -97,6 +97,7 @@ def home():
         .controls { display: flex; gap: 10px; margin-bottom: 10px; }
         input { flex-grow: 1; padding: 10px; border-radius: 5px; border: 2px solid #ff0000; background: #001f3f; color: white; }
         button { padding: 10px 15px; background: #ff0000; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #voiceBtn { width: 100%; padding: 10px; background: #ffd700; color: black; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -108,6 +109,7 @@ def home():
         <input type="text" id="message" placeholder="Ask Trump anything...">
         <button onclick="sendMessage()">SEND</button>
     </div>
+    <button id="voiceBtn" onclick="startVoice()">🎤 SPEAK TO TRUMP</button>
 
     <script>
         // Load previous messages when page opens
@@ -123,8 +125,23 @@ def home():
                 }
             });
             chat.scrollTop = chat.scrollHeight;
-            }
+        }
 
+        function startVoice() {
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.onresult = function(event) {
+                const text = event.results[0][0].transcript;
+                document.getElementById('message').value = text;
+                document.getElementById('voiceBtn').innerText = '🎤 SPEAK TO TRUMP';
+                sendMessage();
+            };
+            recognition.onerror = function() {
+                document.getElementById('voiceBtn').innerText = '🎤 SPEAK TO TRUMP';
+            };
+            recognition.start();
+            document.getElementById('voiceBtn').innerText = '🔴 Listening...';
+        }
 
         async function sendMessage() {
             const input = document.getElementById("message");
@@ -141,7 +158,6 @@ def home():
             const data = await response.json();
             chat.innerHTML += `<p class="ai">🍊 Trump: ${data.response}</p>`;
             chat.scrollTop = chat.scrollHeight;
-            speak(data.response);
         }
 
         document.getElementById("message").addEventListener("keypress", function(e) {
