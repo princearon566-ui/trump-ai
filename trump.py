@@ -50,6 +50,7 @@ def home():
         .controls { display: flex; gap: 10px; }
         input { flex-grow: 1; padding: 10px; border-radius: 5px; border: 2px solid #ff0000; background: #001f3f; color: white; }
         button { width: 20%; padding: 10px; background: #ff0000; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #voiceBtn { width: 100%; margin-top: 10px; padding: 10px; background: #ffd700; color: black; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -60,9 +61,32 @@ def home():
     <div class="controls">
         <input type="text" id="message" placeholder="Ask Trump anything...">
         <button onclick="sendMessage()">SEND</button>
+        <button id="voiceBtn" onclick="startVoice()">🎤 SPEAK</button>
     </div>
 
     <script>
+    // Voice input
+function startVoice() {
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'en-US';
+    
+    recognition.onresult = function(event) {
+        const text = event.results[0][0].transcript;
+        document.getElementById('message').value = text;
+        sendMessage();
+    };
+    
+    recognition.start();
+    document.getElementById('voiceBtn').innerText = '🔴 Listening...';
+}
+
+// Trump speaks back!
+function speak(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 0.8;
+    window.speechSynthesis.speak(utterance);
+}
         async function sendMessage() {
             const input = document.getElementById("message");
             const chat = document.getElementById("chat");
@@ -81,6 +105,7 @@ def home():
             
             const data = await response.json();
             chat.innerHTML += `<p class="ai"><strong>🍊 Trump:</strong> ${data.response}</p>`;
+            speak(data.response);
             chat.scrollTop = chat.scrollHeight;
         }
 
