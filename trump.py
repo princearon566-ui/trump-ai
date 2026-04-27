@@ -67,6 +67,8 @@ def home():
 <script>
     // 1. Voice input function
     function startVoice() {
+    alert("Button works!");  // add this first line
+    const recognition = new webkitSpeechRecognition();
         const recognition = new webkitSpeechRecognition();
         recognition.lang = 'en-US';
         
