@@ -64,55 +64,39 @@ def home():
         <button id="voiceBtn" onclick="startVoice()">🎤 SPEAK</button>
     </div>
 
-    <script>
-    // Voice input
-function startVoice() {
-    const recognition = new webkitSpeechRecognition();
-    recognition.lang = 'en-US';
-    
-    recognition.onresult = function(event) {
-        const text = event.results[0][0].transcript;
-        document.getElementById('message').value = text;
-        sendMessage();
-    };
-    
-    recognition.start();
-    document.getElementById('voiceBtn').innerText = '🔴 Listening...';
-}
+<script>
+    // 1. Voice input function
+    function startVoice() {
+        const recognition = new webkitSpeechRecognition();
+        recognition.lang = 'en-US';
+        
+        recognition.onresult = function(event) {
+            const text = event.results[0][0].transcript;
+            document.getElementById('message').value = text;
+            sendMessage();
+        };
+        
+        recognition.start();
+        document.getElementById('voiceBtn').innerText = '🔴 Listening...';
+    }
 
-// Trump speaks back!
-function speak(text) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 0.8;
-    window.speechSynthesis.speak(utterance);
-}
-        async function sendMessage() {
-            const input = document.getElementById("message");
-            const chat = document.getElementById("chat");
-            const message = input.value;
-            if (!message) return;
+    // 2. Trump speaks back!
+    function speak(text) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.8;
+        utterance.pitch = 0.7;
+        utterance.volume = 1;
+        const voices = window.speechSynthesis.getVoices();
+        const americanVoice = voices.find(v => v.lang === "en-US");
+        if (americanVoice) utterance.voice = americanVoice;
+        window.speechSynthesis.speak(utterance);
+    }
 
-            chat.innerHTML += `<p class="user"><strong>You:</strong> ${message}</p>`;
-            input.value = "";
-            chat.scrollTop = chat.scrollHeight;
-
-            const response = await fetch("/chat", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({message: message})
-            });
-            
-            const data = await response.json();
-            chat.innerHTML += `<p class="ai"><strong>🍊 Trump:</strong> ${data.response}</p>`;
-            speak(data.response);
-            chat.scrollTop = chat.scrollHeight;
-        }
-
-        document.getElementById("message").addEventListener("keypress", function(e) {
-            if (e.key === "Enter") sendMessage();
-        });
-    </script>
+    // 3. Send message function
+    async function sendMessage() {
+        ...
+    }
+</script>
 </body>
 </html>
     ''')
