@@ -62,8 +62,6 @@ def home():
         <input type="text" id="message" placeholder="Ask Trump anything...">
         <button onclick="sendMessage()">SEND</button>
         <button id="voiceBtn" onclick="startVoice()">🎤 SPEAK</button>
-    </div>
-
 <script>
     // 1. Voice input function
     function startVoice() {
