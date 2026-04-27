@@ -8,7 +8,7 @@ API_KEY = os.environ.get("GROQ_API_KEY")
 
 conversation = [
     {
-        "role": "system", 
+        "role": "system",
         "content": "You are Donald Trump. You speak exactly like him — using words like 'tremendous', 'huge', 'believe me', 'nobody knows more than me', 'bigly', 'the best'. You brag constantly but are actually helpful. Every answer relates back to how great you are."
     }
 ]
@@ -47,10 +47,10 @@ def home():
         .user { color: #ffd700; margin: 10px 0; }
         .ai { color: #ffffff; margin: 10px 0; }
         .flag { text-align: center; font-size: 30px; margin: 10px; }
-        .controls { display: flex; gap: 10px; }
+        .controls { display: flex; gap: 10px; margin-bottom: 10px; }
         input { flex-grow: 1; padding: 10px; border-radius: 5px; border: 2px solid #ff0000; background: #001f3f; color: white; }
-        button { width: 20%; padding: 10px; background: #ff0000; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        #voiceBtn { width: 100%; margin-top: 10px; padding: 10px; background: #ffd700; color: black; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button { padding: 10px 15px; background: #ff0000; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #voiceBtn { width: 100%; padding: 10px; background: #ffd700; color: black; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -61,42 +61,66 @@ def home():
     <div class="controls">
         <input type="text" id="message" placeholder="Ask Trump anything...">
         <button onclick="sendMessage()">SEND</button>
-        <button id="voiceBtn" onclick="startVoice()">🎤 SPEAK</button>
-<script>
-    // 1. Voice input function
-    function startVoice() {
-    alert("Button works!");  // add this first line
-    const recognition = new webkitSpeechRecognition();
-        const recognition = new webkitSpeechRecognition();
-        recognition.lang = 'en-US';
-        
-        recognition.onresult = function(event) {
-            const text = event.results[0][0].transcript;
-            document.getElementById('message').value = text;
-            sendMessage();
-        };
-        
-        recognition.start();
-        document.getElementById('voiceBtn').innerText = '🔴 Listening...';
-    }
+    </div>
+    <button id="voiceBtn" onclick="startVoice()">🎤 SPEAK TO TRUMP</button>
 
-    // 2. Trump speaks back!
-    function speak(text) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.8;
-        utterance.pitch = 0.7;
-        utterance.volume = 1;
-        const voices = window.speechSynthesis.getVoices();
-        const americanVoice = voices.find(v => v.lang === "en-US");
-        if (americanVoice) utterance.voice = americanVoice;
-        window.speechSynthesis.speak(utterance);
-    }
+    <script>
+        // 1. Voice input function
+        function startVoice() {
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'en-US';
 
-    // 3. Send message function
-    async function sendMessage() {
-        ...
-    }
-</script>
+            recognition.onresult = function(event) {
+                const text = event.results[0][0].transcript;
+                document.getElementById('message').value = text;
+                document.getElementById('voiceBtn').innerText = '🎤 SPEAK TO TRUMP';
+                sendMessage();
+            };
+
+            recognition.onerror = function() {
+                document.getElementById('voiceBtn').innerText = '🎤 SPEAK TO TRUMP';
+            };
+
+            recognition.start();
+            document.getElementById('voiceBtn').innerText = '🔴 Listening...';
+        }
+
+        // 2. Trump speaks back!
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 0.8;
+            utterance.volume = 1;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 3. Send message function
+        async function sendMessage() {
+            const input = document.getElementById("message");
+            const chat = document.getElementById("chat");
+            const message = input.value.trim();
+            if (!message) return;
+
+            chat.innerHTML += `<p class="user">You: ${message}</p>`;
+            input.value = "";
+
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({message: message})
+            });
+
+            const data = await response.json();
+            chat.innerHTML += `<p class="ai">🍊 Trump: ${data.response}</p>`;
+            chat.scrollTop = chat.scrollHeight;
+            speak(data.response);
+        }
+
+        // Allow Enter key to send
+        document.getElementById("message").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") sendMessage();
+        });
+    </script>
 </body>
 </html>
     ''')
@@ -106,14 +130,13 @@ def chat():
     user_input = request.json.get("message")
     if not user_input:
         return jsonify({"response": "That's a weak question. Try again."})
-        
+
     conversation.append({"role": "user", "content": user_input})
     response_text = ask_ai(conversation)
     conversation.append({"role": "assistant", "content": response_text})
-    
+
     return jsonify({"response": response_text})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-  
