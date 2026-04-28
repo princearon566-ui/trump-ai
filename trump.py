@@ -36,18 +36,17 @@ def load_conversation(session_id):
 
 def save_message(session_id, role, content):
     try:
-        # Remove any problematic characters
-        clean_content = ''.join(
-            char for char in content 
-            if ord(char) < 128
-        )
+        # Don't strip characters! Supabase can handle them.
         supabase.table("conversations").insert({
             "session_id": session_id,
             "role": role,
-            "content": clean_content
+            "content": content
         }).execute()
     except Exception as e:
-        print(f"Save error: {e}")
+        # This print statement is likely what's failing in Render's logs
+        # because the error message itself contains non-ascii characters.
+        print(f"Save error: {str(e).encode('ascii', 'ignore').decode('ascii')}")
+        
         
 def ask_ai(conversation_history):
     try:
