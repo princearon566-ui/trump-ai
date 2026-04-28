@@ -36,14 +36,16 @@ def load_conversation(session_id):
 
 def save_message(session_id, role, content):
     try:
+        # Clean special characters before saving
+        clean_content = content.encode('utf-8', 'ignore').decode('utf-8')
         supabase.table("conversations").insert({
             "session_id": session_id,
             "role": role,
-            "content": content
+            "content": clean_content
         }).execute()
     except Exception as e:
         print(f"Save error: {e}")
-
+        
 def ask_ai(conversation_history):
     try:
         response = requests.post(
