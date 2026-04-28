@@ -111,7 +111,7 @@ def home():
                 if (msg.role === "user") {
                     chat.innerHTML += `<p class="user">You: ${msg.content}</p>`;
                 } else if (msg.role === "assistant") {
-                    chat.innerHTML += `<p class="ai">🍊 Trump: ${msg.content}</p>`;
+                    chat.innerHTML += `<p class="ai">Trump: ${msg.content}</p>`;
                 }
             });
             chat.scrollTop = chat.scrollHeight;
