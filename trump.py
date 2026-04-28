@@ -1,61 +1,48 @@
 from flask import Flask, request, jsonify, render_template_string, session
 import requests
 import os
-import sqlite3
-import json
+from supabase import create_client
 
 app = Flask(__name__)
 app.secret_key = "trump2024secretkey"
 
+# API keys
 API_KEY = os.environ.get("GROQ_API_KEY")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
+# Connect to Supabase
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 SYSTEM_PROMPT = {
     "role": "system",
     "content": "You are Donald Trump. You speak exactly like him — using words like 'tremendous', 'huge', 'believe me', 'nobody knows more than me', 'bigly', 'the best'. You brag constantly but are actually helpful."
 }
 
-# Setup database
-def init_db():
-    db = sqlite3.connect("conversations.db")
-    cursor = db.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS conversations (
-            id INTEGER PRIMARY KEY,
-            session_id TEXT,
-            role TEXT,
-            content TEXT
-        )
-    """)
-    db.commit()
-    db.close()
-
-# Load conversation from database
 def load_conversation(session_id):
-    db = sqlite3.connect("conversations.db")
-    cursor = db.cursor()
-    cursor.execute("""
-        SELECT role, content FROM conversations
-        WHERE session_id = ?
-        ORDER BY id
-    """, (session_id,))
-    rows = cursor.fetchall()
-    db.close()
-
-    if rows:
-        return [{"role": row[0], "content": row[1]} for row in rows]
-    else:
+    try:
+        result = supabase.table("conversations")\
+            .select("role, content")\
+            .eq("session_id", session_id)\
+            .order("id")\
+            .execute()
+        
+        if result.data:
+            return [{"role": r["role"], "content": r["content"]} for r in result.data]
+        else:
+            return [SYSTEM_PROMPT]
+    except:
         return [SYSTEM_PROMPT]
 
-# Save message to database
 def save_message(session_id, role, content):
-    db = sqlite3.connect("conversations.db")
-    cursor = db.cursor()
-    cursor.execute("""
-        INSERT INTO conversations (session_id, role, content)
-        VALUES (?, ?, ?)
-    """, (session_id, role, content))
-    db.commit()
-    db.close()
+    try:
+        supabase.table("conversations").insert({
+            "session_id": session_id,
+            "role": role,
+            "content": content
+        }).execute()
+    except Exception as e:
+        print(f"Save error: {e}")
 
 def ask_ai(conversation_history):
     try:
@@ -73,11 +60,10 @@ def ask_ai(conversation_history):
         data = response.json()
         return data["choices"][0]["message"]["content"]
     except Exception as e:
-        return f"We have a problem, a huge problem. (Error: {str(e)})"
+        return f"We have a problem, a huge problem. The best people are looking at it. (Error: {str(e)})"
 
 @app.route("/")
 def home():
-    # Give each user a unique session ID
     if "session_id" not in session:
         session["session_id"] = os.urandom(16).hex()
     return render_template_string('''
@@ -112,7 +98,6 @@ def home():
     <button id="voiceBtn" onclick="startVoice()">🎤 SPEAK TO TRUMP</button>
 
     <script>
-        // Load previous messages when page opens
         window.onload = async function() {
             const response = await fetch("/history");
             const data = await response.json();
@@ -143,6 +128,7 @@ def home():
             document.getElementById('voiceBtn').innerText = '🔴 Listening...';
         }
 
+    
         async function sendMessage() {
             const input = document.getElementById("message");
             const chat = document.getElementById("chat");
@@ -167,12 +153,11 @@ def home():
 </body>
 </html>
     ''')
-    
+
 @app.route("/history")
 def history():
     session_id = session.get("session_id", "default")
     conversation = load_conversation(session_id)
-    # Filter out system message
     messages = [m for m in conversation if m["role"] != "system"]
     return jsonify({"messages": messages})
 
@@ -183,23 +168,13 @@ def chat():
     if not user_input:
         return jsonify({"response": "That's a weak question. Try again."})
 
-    # Load conversation from database
     conversation = load_conversation(session_id)
-
-    # Save user message
     save_message(session_id, "user", user_input)
     conversation.append({"role": "user", "content": user_input})
-
-    # Get AI response
     response_text = ask_ai(conversation)
-
-    # Save AI response
     save_message(session_id, "assistant", response_text)
 
     return jsonify({"response": response_text})
-
-# Initialize database when app starts
-init_db()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
